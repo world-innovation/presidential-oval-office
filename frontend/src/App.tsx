@@ -4,9 +4,22 @@ import DroneMap from "./components/DroneMap";
 import DeliveryForm from "./components/DeliveryForm";
 import DeliveryList from "./components/DeliveryList";
 import StatsBar from "./components/StatsBar";
+import UserApp from "./UserApp";
 import type { Port, Drone, Delivery, SystemStats } from "./types";
 
+type Mode = "user" | "admin";
+
 export default function App() {
+  const [mode, setMode] = useState<Mode>("user");
+
+  if (mode === "user") {
+    return <UserApp onSwitchToAdmin={() => setMode("admin")} />;
+  }
+
+  return <AdminDashboard onSwitchToUser={() => setMode("user")} />;
+}
+
+function AdminDashboard({ onSwitchToUser }: { onSwitchToUser: () => void }) {
   const [ports, setPorts] = useState<Port[]>([]);
   const [drones, setDrones] = useState<Drone[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -83,6 +96,12 @@ export default function App() {
             <p className="text-sm text-slate-400">ドローン配送空域管理システム</p>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={onSwitchToUser}
+              className="rounded bg-slate-600 px-4 py-2 text-sm font-medium transition hover:bg-slate-500"
+            >
+              配送アプリ
+            </button>
             {!seeded && (
               <button
                 onClick={handleSeed}

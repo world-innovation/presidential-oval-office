@@ -47,3 +47,37 @@ export interface SimulationTick {
   drones: Drone[];
   completed_deliveries: number;
 }
+
+export interface Waypoint {
+  latitude: number;
+  longitude: number;
+  altitude_m: number;
+  timestamp: string;
+}
+
+export interface DeliveryDetail {
+  id: number;
+  user_id: string;
+  pickup_port_id: number;
+  delivery_port_id: number;
+  pickup_port_name: string;
+  delivery_port_name: string;
+  pickup_lat: number;
+  pickup_lng: number;
+  delivery_lat: number;
+  delivery_lng: number;
+  payload_weight_kg: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  drone_name: string | null;
+  drone_battery: number | null;
+  drone_lat: number | null;
+  drone_lng: number | null;
+  drone_alt: number | null;
+  flight_altitude_m: number | null;
+  flight_departure: string | null;
+  flight_eta: string | null;
+  flight_status: string | null;
+  waypoints: Waypoint[];
+}

@@ -92,6 +92,33 @@ class SimulationTickResponse(BaseModel):
     completed_deliveries: int
 
 
+class DeliveryDetailResponse(BaseModel):
+    id: int
+    user_id: str
+    pickup_port_id: int
+    delivery_port_id: int
+    pickup_port_name: str
+    delivery_port_name: str
+    pickup_lat: float
+    pickup_lng: float
+    delivery_lat: float
+    delivery_lng: float
+    payload_weight_kg: float
+    status: DeliveryStatus
+    created_at: datetime
+    updated_at: datetime
+    drone_name: str | None = None
+    drone_battery: float | None = None
+    drone_lat: float | None = None
+    drone_lng: float | None = None
+    drone_alt: float | None = None
+    flight_altitude_m: float | None = None
+    flight_departure: datetime | None = None
+    flight_eta: datetime | None = None
+    flight_status: FlightStatus | None = None
+    waypoints: list[Waypoint] = []
+
+
 class SystemStats(BaseModel):
     total_ports: int
     total_drones: int

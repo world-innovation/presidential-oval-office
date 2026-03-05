@@ -33,4 +33,10 @@ export const api = {
 
   tick: () =>
     request<import("../types").SimulationTick>("/api/simulation/tick", { method: "POST" }),
+
+  getUserDeliveries: (userId: string) =>
+    request<import("../types").DeliveryDetail[]>(`/api/deliveries/user/${encodeURIComponent(userId)}`),
+
+  getDeliveryDetail: (id: number) =>
+    request<import("../types").DeliveryDetail>(`/api/deliveries/${id}/detail`),
 };

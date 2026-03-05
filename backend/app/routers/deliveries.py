@@ -24,7 +24,13 @@ from ..models import (
     FlightStatus,
     Port,
 )
-from ..schemas import DeliveryCreate, DeliveryResponse, FlightPlanResponse
+from ..schemas import (
+    DeliveryCreate,
+    DeliveryDetailResponse,
+    DeliveryResponse,
+    FlightPlanResponse,
+    Waypoint,
+)
 from ..services import airspace, fleet, port_scheduler, routing
 from ..ws.manager import manager
 
@@ -133,6 +139,18 @@ async def create_delivery(body: DeliveryCreate, db: Session = Depends(get_db)):
     return req
 
 
+@router.get("/user/{user_id}", response_model=list[DeliveryDetailResponse])
+def list_user_deliveries(user_id: str, db: Session = Depends(get_db)):
+    """Return all deliveries for a specific user with enriched detail."""
+    reqs = (
+        db.query(DeliveryRequest)
+        .filter(DeliveryRequest.user_id == user_id)
+        .order_by(DeliveryRequest.created_at.desc())
+        .all()
+    )
+    return [_build_detail(db, r) for r in reqs]
+
+
 @router.get("/{delivery_id}", response_model=DeliveryResponse)
 def get_delivery(delivery_id: int, db: Session = Depends(get_db)):
     req = db.get(DeliveryRequest, delivery_id)
@@ -141,9 +159,59 @@ def get_delivery(delivery_id: int, db: Session = Depends(get_db)):
     return req
 
 
+@router.get("/{delivery_id}/detail", response_model=DeliveryDetailResponse)
+def get_delivery_detail(delivery_id: int, db: Session = Depends(get_db)):
+    req = db.get(DeliveryRequest, delivery_id)
+    if req is None:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    return _build_detail(db, req)
+
+
 @router.get("/{delivery_id}/flight", response_model=FlightPlanResponse)
 def get_flight_plan(delivery_id: int, db: Session = Depends(get_db)):
     fp = db.query(FlightPlan).filter(FlightPlan.delivery_id == delivery_id).first()
     if fp is None:
         raise HTTPException(status_code=404, detail="Flight plan not found")
     return fp
+
+
+def _build_detail(db: Session, req: DeliveryRequest) -> DeliveryDetailResponse:
+    from ..models import Drone
+
+    pickup = db.get(Port, req.pickup_port_id)
+    delivery_port = db.get(Port, req.delivery_port_id)
+    fp = db.query(FlightPlan).filter(FlightPlan.delivery_id == req.id).first()
+
+    drone = None
+    waypoints: list[Waypoint] = []
+    if fp:
+        drone = db.get(Drone, fp.drone_id)
+        raw = json.loads(fp.waypoints_json)
+        waypoints = [Waypoint(**w) for w in raw]
+
+    return DeliveryDetailResponse(
+        id=req.id,
+        user_id=req.user_id,
+        pickup_port_id=req.pickup_port_id,
+        delivery_port_id=req.delivery_port_id,
+        pickup_port_name=pickup.name if pickup else "?",
+        delivery_port_name=delivery_port.name if delivery_port else "?",
+        pickup_lat=pickup.latitude if pickup else 0,
+        pickup_lng=pickup.longitude if pickup else 0,
+        delivery_lat=delivery_port.latitude if delivery_port else 0,
+        delivery_lng=delivery_port.longitude if delivery_port else 0,
+        payload_weight_kg=req.payload_weight_kg,
+        status=req.status,
+        created_at=req.created_at,
+        updated_at=req.updated_at,
+        drone_name=drone.name if drone else None,
+        drone_battery=drone.battery_level if drone else None,
+        drone_lat=drone.current_lat if drone else None,
+        drone_lng=drone.current_lng if drone else None,
+        drone_alt=drone.current_alt if drone else None,
+        flight_altitude_m=fp.altitude_m if fp else None,
+        flight_departure=fp.departure_time if fp else None,
+        flight_eta=fp.estimated_arrival if fp else None,
+        flight_status=fp.status if fp else None,
+        waypoints=waypoints,
+    )
